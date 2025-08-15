@@ -1,94 +1,121 @@
 #include "pydirectx.h"
 #include <iostream>
 
-namespace py = pybind11;
-using namespace pydirectx;
+#ifdef _WIN32
+#include <d3d12.h>
+#include <d3d11.h>
+#include <d3d10.h>
+#include <dxgi.h>
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3d10.lib")
+#pragma comment(lib, "dxgi.lib")
+#endif
 
-// --- Implementation ---
+void PyDirectX::init(int ver) {
+    if(ver == 10) version = DXVersion::DX10;
+    else if(ver == 11) version = DXVersion::DX11;
+    else if(ver == 12) version = DXVersion::DX12;
+    else throw std::runtime_error("Unsupported DirectX version");
 
-void DirectX::check_support() {
-    // Here you should query your GPU for support. Placeholder:
-    if (version_ < Version::DX10 || version_ > Version::DX12)
-        throw std::runtime_error("DirectX version not supported by GPU.");
-}
-
-DirectX::DirectX(Version version) : version_(version) {
-    check_support();
-}
-
-void DirectX::render_text(int x, int y, const std::string &text, int width, int height) {
-    std::cout << "[DX" << int(version_) << "] Render Text: " << text << " at (" << x << "," << y << ")\n";
-}
-
-// -------------------
-
-void Direct3D::check_support() {
-    if (version_ < Version::DX10 || version_ > Version::DX12)
-        throw std::runtime_error("Direct3D version not supported by GPU.");
-}
-
-Direct3D::Direct3D(Version version) : version_(version) {
-    check_support();
-}
-
-void Direct3D::render_triangle(int x, int y, int z, int width, int height, int rotation, int depth, const std::string &texture) {
-    std::cout << "[D3D" << int(version_) << "] Render Triangle at (" << x << "," << y << "," << z << ") with texture: " << texture << "\n";
-}
-
-void Direct3D::render_box(int x, int y, int z, int width, int height, int rotation, int depth, const std::string &texture) {
-    std::cout << "[D3D" << int(version_) << "] Render Box at (" << x << "," << y << "," << z << ") with texture: " << texture << "\n";
-}
-
-void Direct3D::render_circle(int x, int y, int z, int width, int height, int rotation, int depth, const std::string &texture) {
-    std::cout << "[D3D" << int(version_) << "] Render Circle at (" << x << "," << y << "," << z << ") with texture: " << texture << "\n";
-}
-
-void Direct3D::render_3dtext(int x, int y, int z, int width, int height, int rotation, int depth, const std::string &text, const std::string &texture) {
-    std::cout << "[D3D" << int(version_) << "] Render 3D Text: " << text << " at (" << x << "," << y << "," << z << ") with texture: " << texture << "\n";
-}
-
-void Direct3D::remove_triangle() { std::cout << "Remove Triangle\n"; }
-void Direct3D::remove_box() { std::cout << "Remove Box\n"; }
-void Direct3D::remove_circle() { std::cout << "Remove Circle\n"; }
-void Direct3D::remove_3dtext() { std::cout << "Remove 3D Text\n"; }
-
-// -------------------
-
-DirectX PyDirectX::dx = DirectX(Version::DX10);   // default placeholder
-Direct3D PyDirectX::d3d = Direct3D(Version::DX10);
-
-void PyDirectX::init(int version, const std::string &api) {
-    Version ver = static_cast<Version>(version);
-    if (api == "dx") {
-        dx = DirectX(ver);
-    } else if (api == "d3d") {
-        d3d = Direct3D(ver);
-    } else if (api == "both") {
-        dx = DirectX(ver);
-        d3d = Direct3D(ver);
-    } else {
-        throw std::runtime_error("Invalid API type, must be 'dx', 'd3d', or 'both'");
+    // Simple GPU/driver check
+    bool supported = false;
+#ifdef _WIN32
+    IDXGIFactory* factory = nullptr;
+    if(SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory))) {
+        IDXGIAdapter* adapter = nullptr;
+        if(factory->EnumAdapters(0, &adapter) == DXGI_ERROR_NOT_FOUND)
+            supported = false;
+        else supported = true;
+        if(adapter) adapter->Release();
+        factory->Release();
     }
+#endif
+    if(!supported)
+        throw std::runtime_error("DirectX/Direct3D " + std::to_string(ver) + " is not supported");
+
+    d3d = std::make_unique<D3DRenderer>();
+    dx  = std::make_unique<DXRenderer>();
 }
 
-// --- PYBIND11 MODULE ---
+// ------------- D3DRenderer -------------
+void D3DRenderer::render_triangle(float x, float y, float z,
+                                  float height, float width,
+                                  float rotation, float depth,
+                                  const std::string& texture) {
+    std::cout << "Render triangle at " << x << "," << y << "," << z << " with texture: " << texture << "\n";
+}
+void D3DRenderer::render_box(float x, float y, float z,
+                             float height, float width,
+                             float rotation, float depth,
+                             const std::string& texture) {
+    std::cout << "Render box with texture: " << texture << "\n";
+}
+void D3DRenderer::render_circle(float x, float y, float z,
+                                float height, float width,
+                                float rotation, float depth,
+                                const std::string& texture) {
+    std::cout << "Render circle with texture: " << texture << "\n";
+}
+void D3DRenderer::render_3dtext(float x, float y, float z,
+                                float height, float width,
+                                float rotation, float depth,
+                                const std::string& text,
+                                const std::string& texture) {
+    std::cout << "Render 3D text: " << text << " with texture: " << texture << "\n";
+}
+void D3DRenderer::remove_triangle(int id) {}
+void D3DRenderer::remove_box(int id) {}
+void D3DRenderer::remove_circle(int id) {}
+void D3DRenderer::remove_3dtext(int id) {}
 
+// ------------- DXRenderer -------------
+void DXRenderer::render_text(const std::string& text, float x, float y, float size) {
+    std::cout << "Render text: " << text << "\n";
+}
+void DXRenderer::render_box(float x, float y, float width, float height, const std::string& color) {
+    std::cout << "Render 2D box with color: " << color << "\n";
+}
+void DXRenderer::clear() {
+    std::cout << "Clear screen\n";
+}
+
+// ---------------- PYBIND11 MODULE ----------------
 PYBIND11_MODULE(pydirectx, m) {
-    py::class_<DirectX>(m, "DirectX")
-        .def("render_text", &DirectX::render_text);
+    py::class_<PyDirectX>(m, "PyDirectX")
+        .def(py::init<>())
+        .def("init", &PyDirectX::init)
+        .def_readonly("d3d", &PyDirectX::d3d)
+        .def_readonly("dx", &PyDirectX::dx);
 
-    py::class_<Direct3D>(m, "Direct3D")
-        .def("render_triangle", &Direct3D::render_triangle)
-        .def("render_box", &Direct3D::render_box)
-        .def("render_circle", &Direct3D::render_circle)
-        .def("render_3dtext", &Direct3D::render_3dtext)
-        .def("remove_triangle", &Direct3D::remove_triangle)
-        .def("remove_box", &Direct3D::remove_box)
-        .def("remove_circle", &Direct3D::remove_circle)
-        .def("remove_3dtext", &Direct3D::remove_3dtext);
+    py::class_<D3DRenderer>(m, "D3DRenderer")
+        .def("render_triangle", &D3DRenderer::render_triangle,
+             py::arg("x"), py::arg("y"), py::arg("z"),
+             py::arg("height"), py::arg("width"),
+             py::arg("rotation"), py::arg("depth"),
+             py::arg("texture") = "")
+        .def("render_box", &D3DRenderer::render_box,
+             py::arg("x"), py::arg("y"), py::arg("z"),
+             py::arg("height"), py::arg("width"),
+             py::arg("rotation"), py::arg("depth"),
+             py::arg("texture") = "")
+        .def("render_circle", &D3DRenderer::render_circle,
+             py::arg("x"), py::arg("y"), py::arg("z"),
+             py::arg("height"), py::arg("width"),
+             py::arg("rotation"), py::arg("depth"),
+             py::arg("texture") = "")
+        .def("render_3dtext", &D3DRenderer::render_3dtext,
+             py::arg("x"), py::arg("y"), py::arg("z"),
+             py::arg("height"), py::arg("width"),
+             py::arg("rotation"), py::arg("depth"),
+             py::arg("text"), py::arg("texture") = "")
+        .def("remove_triangle", &D3DRenderer::remove_triangle)
+        .def("remove_box", &D3DRenderer::remove_box)
+        .def("remove_circle", &D3DRenderer::remove_circle)
+        .def("remove_3dtext", &D3DRenderer::remove_3dtext);
 
-    py::class_<PyDirectX>(m, "pydirectx")
-        .def_static("init", &PyDirectX::init)
-        .def_readwrite_static("dx", &PyDirectX::dx)
-        .def_readwrite_static("d3d", &PyDirectX::d3d);
+    py::class_<DXRenderer>(m, "DXRenderer")
+        .def("render_text", &DXRenderer::render_text)
+        .def("render_box", &DXRenderer::render_box)
+        .def("clear", &DXRenderer::clear);
 }
