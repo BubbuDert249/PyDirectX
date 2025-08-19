@@ -1,0 +1,17 @@
+[project]
+name = "pydirectx"
+version = "1.0.0"
+authors = [{ name="BubbuDert" }]
+requires-python = ">=3.8"
+dependencies = ["pythonnet", "pydx12"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["pydirectx"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"pydirectx" = ["*.py", "sharpdx/*.dll"]
