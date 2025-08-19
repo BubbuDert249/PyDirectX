@@ -7,7 +7,6 @@ Make sure your GPU supports DirectX 9 or later <br>
 Make sure you have pythonnet and pydx12 installed <br>
 Make sure you have Python 3.8 or later <br>
 Make sure your Python enviroment is regular Python, not Jython, PyPy or IronPython <br>
-The DirectX 9 and 11 version is Direct3D, the 12 version is DirectX <br>
 If the pydx12/pythonnet installation fails, go to PyPi and download the local .whl <br>
 Make sure you create a HWND for the DirectX window <br>
 If the .whl doesn't work, install the .tar.gz <br>
