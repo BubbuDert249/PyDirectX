@@ -1,9 +1,9 @@
 [project]
 name = "pydirectx"
-version = "1.0.0"
+version = "1.0.1"
 authors = [{ name="BubbuDert" }]
-requires-python = ">=3.8"
-dependencies = ["pythonnet", "pydx12"]
+requires-python = ">=3.7"
+dependencies = ["pythonnet"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
