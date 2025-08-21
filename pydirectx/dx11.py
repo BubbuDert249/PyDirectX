@@ -1,4 +1,12 @@
 import clr
+import os
+import sys
+base_dir = os.path.dirname(os.path.abspath(__file__))
+sharpdx_dir = os.path.join(base_dir, "sharpdx")
+sys.path.append(sharpdx_dir)
+clr.AddReference("SharpDX")
+clr.AddReference("SharpDX.Direct3D11")
+clr.AddReference("SharpDX.DXGI")
 from SharpDX import Direct3D11, DXGI
 
 def create_device():
